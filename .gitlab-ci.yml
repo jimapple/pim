@@ -1,0 +1,97 @@
+#image: docker:latest
+#services:
+#- docker:dind
+#
+#stages:
+#- build
+#- deploy
+#
+#variables:
+#  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+#
+#before_script:
+#  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
+#
+#build:
+#  stage: build
+#  script:
+#    - docker build  -t $CI_REGISTRY_IMAGE:${CI_COMMIT_REF_NAME} .
+#    - docker push $CI_REGISTRY_IMAGE:${CI_COMMIT_REF_NAME}
+#  only:
+#    - master
+#    - dev
+#    - tags
+#
+#deploy:
+#  stage: deploy
+#  script:
+#    - ./deploy.sh
+#  environment:
+#    name: production
+#    url: https://example.com
+#  when: manual
+#  only:
+#    - master
+#    - tags
+
+
+
+
+
+image: docker:latest
+
+stages:
+- build
+- deploy
+
+variables:
+  REGISTRY_IMAGE: "reg.douwa.io/hsbs/${CI_PROJECT_NAME}"
+  POSTGRES_DB: postgres
+  POSTGRES_USER: jim
+  POSTGRES_PASSWORD: "123456"
+  POSTGRES_PORT: 5432
+  APP_PORT: 30301
+  PGSQL_PORT: 50310
+  PIM_VERSION: v0.1
+  PGSQL_MIGRATE: 1
+
+before_script:
+  - docker login -u dw -p $DOUWA_REGISTRY_PASSWORD reg.douwa.io
+
+build:
+  stage: build
+  retry: 2
+  script:
+    - docker build -t $REGISTRY_IMAGE:${CI_COMMIT_REF_NAME} .
+    - docker push $REGISTRY_IMAGE:${CI_COMMIT_REF_NAME}
+  only:
+    - master
+    - dev
+    - tags
+
+deploy:
+  stage: deploy
+  retry: 2
+  #services:
+  #  - postgres:9.6
+  script:
+    # rm old
+    - OLD_APP_CID=$(docker ps | grep -i ${APP_PORT} | awk '{print $1}')
+    - 'OLD_DB_CNAME=$(docker inspect ${OLD_APP_CID} --format=''{{.HostConfig.Links}}'' | awk -F: ''{print $1}'' | awk -F/ ''{print $2}'')'
+    # - OLD_DB_CNAME=$(docker inspect ${OLD_APP_CID} --format='{{.HostConfig.Links}}' | awk -F: '{print $1}' | awk -F/ '{print $2}')
+    - docker stop ${OLD_DB_CNAME}
+    - docker rm ${OLD_DB_CNAME}
+    - docker stop ${OLD_APP_CID}
+    - docker rm ${OLD_APP_CID}
+    # deploy db
+#    - DB_CID=$(docker run --name pimpostgre -d -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -d -e POSTGRES_USER=${POSTGRES_USER} -d -p ${PGSQL_PORT}:5432 postgres:9.6)
+#    - DB_CNAME=$(docker inspect --format='{{.Name}}' ${DB_CID} | awk -F/ '{print $2}')
+#    - sleep 10
+    # deploy app
+    - docker run -d -p ${APP_PORT}:5000 -e "DB_NAME=${POSTGRES_DB}" -e "DB_USER=${POSTGRES_USER}" -e "DB_PASSWORD=${POSTGRES_PASSWORD}" -e "DB_HOST=postgres" -e "DB_PORT=${PGSQL_PORT}" -e "MIGRATE=${PGSQL_MIGRATE}" -e  "LOGGING_LEVEL=DEBUG" $REGISTRY_IMAGE:${CI_COMMIT_REF_NAME}
+  environment:
+    name: develop
+  only:
+    - master
+    - dev
+    - tags

@@ -1,0 +1,10 @@
+manage.pyo
+*.pyo
+*.pyc
+__pycache__
+upload_home/*
+appserver.log*
+.idea/*
+*.xml
+*.out
+.DS_Store
