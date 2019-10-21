@@ -27,7 +27,7 @@ grpcio==1.7.0
 grpcio-tools==1.7.0
 gunicorn==19.6.0
 honcho==0.7.1
-httpie==0.9.9
+httpie==1.0.3
 idna==2.6
 invoke==0.21.0
 ipython==6.2.1
