@@ -30,7 +30,7 @@ honcho==0.7.1
 httpie==0.9.9
 idna==2.6
 invoke==0.21.0
-ipython==6.2.1
+ipython==7.16.3
 ipython-genutils==0.2.0
 iso8601==0.1.12
 itsdangerous==0.24
